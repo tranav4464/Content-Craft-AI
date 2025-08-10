@@ -1,19 +1,56 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">Loading...</h1>
+          <p className="text-gray-600">Please wait while we load your dashboard</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Will redirect to signin
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Welcome to ContentCraft AI. Start creating amazing content today.
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300">
+              Welcome back, {session.user?.name || session.user?.email}! Start creating amazing content today.
+            </p>
+          </div>
+          <Button 
+            onClick={() => signOut()}
+            variant="outline"
+          >
+            Sign Out
+          </Button>
         </div>
 
         {/* Quick Actions */}
