@@ -1,0 +1,137 @@
+// ContentCraft AI Database Schema
+// Using SQLite for local development and easy deployment
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model (will integrate with NextAuth.js)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  blogs         Blog[]
+  media         Media[]
+  usageEvents   UsageEvent[]
+
+  @@map("users")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Blog content model
+model Blog {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  topic       String
+  tone        String
+  style       String
+  length      String
+  content     String   @default("")
+  outline     String   @default("[]")
+  status      String   @default("draft")
+  
+  // Hero image (stored in Cloudinary)
+  heroImageUrl     String?
+  heroImagePrompt  String?
+  heroImageCaption String?
+  heroImageAlt     String?
+  
+  // SEO data
+  seoScore        String?  // JSON string
+  metaTitle       String?
+  metaDescription String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("blogs")
+}
+
+// Media files (metadata only, files stored in Cloudinary)
+model Media {
+  id        String   @id @default(cuid())
+  userId    String
+  filename  String
+  url       String   // Cloudinary URL
+  publicId  String   // Cloudinary public ID for deletion
+  type      String
+  size      Int?
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("media")
+}
+
+// Usage tracking for billing
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  eventType String   // 'ai_text', 'ai_image', 'export'
+  quantity  Int      @default(1)
+  metadata  String   @default("{}") // JSON string
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("usage_events")
+}
